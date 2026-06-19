@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kafe Menü</title>
+
+    <link rel="stylesheet" href="style.css" />
+
+    <!-- İkonlar için -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+</head>
+
+<body>
+
+    <header class="top-area">
+        <img src="images/logo.png" alt="">
+        <p class="table-info">Masa: <span id="masaNo">-</span></p>
+    </header>
+
+    <nav class="category-menu" id="categoryMenu"></nav>
+
+    <main class="products" id="productList"></main>
+
+    <button class="cart-button" onclick="openCart()">
+        <i class="fa-solid fa-basket-shopping"></i>
+        <span id="cartCount">0</span>
+    </button>
+
+    <div class="cart-modal" id="cartModal">
+        <div class="cart-box">
+            <div class="cart-header">
+                <h2>Sepetim</h2>
+                <button onclick="closeCart()">×</button>
+            </div>
+
+            <div id="cartItems"></div>
+
+            <div class="cart-total">
+                Toplam: <span id="totalPrice">0 TL</span>
+            </div>
+
+            <button class="clear-cart-btn" onclick="clearCart()">Sepeti Boşalt</button>
+            <button class="order-btn" onclick="sendOrder()">Sipariş Ver</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
