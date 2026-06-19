@@ -253,27 +253,6 @@ function renderCart() {
     totalPrice.innerText = `${total} TL`;
 }
 
-function sendOrder() {
-    if (masaNo === "-") {
-        alert("Masa numarası bulunamadı.");
-        return;
-    }
-
-    if (cart.length === 0) {
-        alert("Sepetiniz boş.");
-        return;
-    }
-
-    let total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
-
-    let message = `Masa ${masaNo} sipariş verdi:\n`;
-
-    cart.forEach(item => {
-        message += `${item.qty} adet ${item.name}\n`;
-    });
-
-    message += `Toplam: ${total} TL`;
-}
 
 /*
   Telegram bildirimi için bu bölüm backend'e gönderir.
@@ -404,3 +383,14 @@ function clearCart() {
         updateCartCount();
     }
 }
+
+window.openCart = openCart;
+window.closeCart = closeCart;
+window.clearCart = clearCart;
+window.sendOrder = sendOrder;
+window.addToCart = addToCart;
+window.increaseQty = increaseQty;
+window.decreaseQty = decreaseQty;
+window.increaseCartItem = increaseCartItem;
+window.decreaseCartItem = decreaseCartItem;
+window.removeFromCart = removeFromCart;
