@@ -1,3 +1,5 @@
+import { createOrder } from "./firebase.js";
+
 const categories = [
     { id: "kahvalti", name: "Kahvaltı", icon: "fa-solid fa-egg" },
     { id: "aperatif", name: "Aperatifler", icon: "fa-solid fa-burger" },
@@ -271,35 +273,53 @@ function sendOrder() {
     });
 
     message += `Toplam: ${total} TL`;
+}
 
-    /*
-      Telegram bildirimi için bu bölüm backend'e gönderir.
-      send-order.php dosyası ayrıca hazırlanmalı.
-    */
+/*
+  Telegram bildirimi için bu bölüm backend'e gönderir.
+  send-order.php dosyası ayrıca hazırlanmalı.
+*/
 
-    fetch("send-order.php", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
+async function sendOrder() {
+
+    if (masaNo === "-") {
+        alert("Masa numarası bulunamadı.");
+        return;
+    }
+
+    if (cart.length === 0) {
+        alert("Sepetiniz boş.");
+        return;
+    }
+
+    let total = cart.reduce(
+        (sum, item) => sum + item.price * item.qty,
+        0
+    );
+
+    try {
+
+        await createOrder({
             masa: masaNo,
-            message: message,
-            cart: cart,
-            total: total
-        })
-    })
-        .then(response => response.json())
-        .then(data => {
-            alert("Siparişiniz garsona iletildi.");
-            cart = [];
-            updateCartCount();
-            closeCart();
-        })
-        .catch(error => {
-            console.error(error);
-            alert("Sipariş gönderilirken hata oluştu.");
+            total: total,
+            items: cart
         });
+
+        alert("Siparişiniz garsona iletildi.");
+
+        cart = [];
+
+        updateCartCount();
+
+        closeCart();
+
+    } catch (err) {
+
+        console.error(err);
+
+        alert("Sipariş gönderilemedi.");
+
+    }
 }
 
 renderCategories();
