@@ -12,33 +12,38 @@ import {
 
 const ADMIN_PASSWORD = "1234";
 
-function adminLogin() {
-    const passwordInput = document.getElementById("adminPassword");
-    const loginScreen = document.getElementById("loginScreen");
-    const loginError = document.getElementById("loginError");
+const loginScreen = document.getElementById("loginScreen");
+const loginBtn = document.getElementById("loginBtn");
+const passwordInput = document.getElementById("adminPassword");
+const loginError = document.getElementById("loginError");
+const ordersList = document.getElementById("ordersList");
 
-    if (passwordInput.value === ADMIN_PASSWORD) {
+loginBtn.addEventListener("click", () => {
+
+
+    if (passwordInput.value.trim() === ADMIN_PASSWORD) {
         localStorage.setItem("adminLogin", "true");
+
         loginScreen.style.display = "none";
+        loginScreen.remove();
+
     } else {
         loginError.innerText = "Şifre hatalı!";
     }
-}
+});
 
-window.adminLogin = adminLogin;
-
-window.addEventListener("load", () => {
-    const loginScreen = document.getElementById("loginScreen");
-
-    if (localStorage.getItem("adminLogin") === "true") {
-        loginScreen.style.display = "none";
+passwordInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        loginBtn.click();
     }
 });
 
-const ordersList = document.getElementById("ordersList");
+if (localStorage.getItem("adminLogin") === "true") {
+    loginScreen.style.display = "none";
+}
+
 let firstLoad = true;
 let lastOrderCount = 0;
-
 const notificationSound = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
 const ordersQuery = query(
@@ -49,7 +54,7 @@ const ordersQuery = query(
 onSnapshot(ordersQuery, (snapshot) => {
     if (!firstLoad && snapshot.size > lastOrderCount) {
         notificationSound.play().catch(() => {
-            console.log("Ses çalmak için ekrana bir kez dokunmak gerekebilir.");
+            console.log("Ses için ekrana bir kez dokunmak gerekebilir.");
         });
 
         alert("Yeni sipariş geldi!");
@@ -57,6 +62,7 @@ onSnapshot(ordersQuery, (snapshot) => {
 
     lastOrderCount = snapshot.size;
     firstLoad = false;
+
     ordersList.innerHTML = "";
 
     if (snapshot.empty) {
@@ -97,15 +103,15 @@ onSnapshot(ordersQuery, (snapshot) => {
       </div>
 
       <div class="order-buttons">
-        <button onclick="updateOrderStatus('${orderId}', 'Hazırlanıyor')" class="prepare-btn">
+        <button class="prepare-btn" data-id="${orderId}" data-status="Hazırlanıyor">
           Hazırlanıyor
         </button>
 
-        <button onclick="updateOrderStatus('${orderId}', 'Teslim Edildi')" class="done-btn">
+        <button class="done-btn" data-id="${orderId}" data-status="Teslim Edildi">
           Teslim Edildi
         </button>
 
-        <button onclick="deleteOrder('${orderId}')" class="delete-order-btn">
+        <button class="delete-order-btn" data-id="${orderId}">
           Sil
         </button>
       </div>
@@ -113,12 +119,22 @@ onSnapshot(ordersQuery, (snapshot) => {
 
         ordersList.appendChild(card);
     });
-});
 
+    document.querySelectorAll(".prepare-btn, .done-btn").forEach(button => {
+        button.addEventListener("click", async () => {
+            await updateOrderStatus(button.dataset.id, button.dataset.status);
+        });
+    });
+
+    document.querySelectorAll(".delete-order-btn").forEach(button => {
+        button.addEventListener("click", async () => {
+            await deleteOrder(button.dataset.id);
+        });
+    });
+});
 
 async function updateOrderStatus(orderId, status) {
     const orderRef = doc(db, "orders", orderId);
-
     await updateDoc(orderRef, {
         status: status
     });
@@ -126,12 +142,8 @@ async function updateOrderStatus(orderId, status) {
 
 async function deleteOrder(orderId) {
     const confirmDelete = confirm("Bu siparişi silmek istiyor musunuz?");
-
     if (!confirmDelete) return;
 
     const orderRef = doc(db, "orders", orderId);
     await deleteDoc(orderRef);
 }
-
-window.updateOrderStatus = updateOrderStatus;
-window.deleteOrder = deleteOrder;
