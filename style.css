@@ -292,3 +292,119 @@ body {
     cursor: pointer;
     margin-bottom: 10px;
 }
+
+.admin-body {
+    background: #f7f3ef;
+    padding-bottom: 30px;
+}
+
+.admin-header {
+    background: linear-gradient(135deg, #3b2415, #8b5a2b);
+    color: white;
+    text-align: center;
+    padding: 25px 15px;
+    border-radius: 0 0 28px 28px;
+}
+
+.admin-header h1 {
+    font-size: 26px;
+    margin-bottom: 6px;
+}
+
+.admin-container {
+    padding: 18px;
+    max-width: 850px;
+    margin: auto;
+}
+
+.empty-order {
+    text-align: center;
+    margin-top: 40px;
+    font-size: 18px;
+    color: #777;
+}
+
+.order-card {
+    background: white;
+    border-radius: 22px;
+    padding: 18px;
+    margin-bottom: 18px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08);
+}
+
+.order-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.order-top h2 {
+    font-size: 22px;
+    color: #3b2415;
+}
+
+.status {
+    background: #3b2415;
+    color: white;
+    padding: 7px 12px;
+    border-radius: 14px;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.order-items {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.order-items li {
+    display: flex;
+    justify-content: space-between;
+    padding: 9px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 15px;
+}
+
+.order-total {
+    text-align: right;
+    font-size: 19px;
+    font-weight: bold;
+    margin: 16px 0;
+    color: #8b5a2b;
+}
+
+.order-buttons {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.order-buttons button {
+    border: none;
+    padding: 13px;
+    border-radius: 15px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.prepare-btn {
+    background: #f9a825;
+}
+
+.done-btn {
+    background: #2e7d32;
+}
+
+.delete-order-btn {
+    background: #c62828;
+}
+
+@media (min-width: 700px) {
+    .order-buttons {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
