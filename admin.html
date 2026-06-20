@@ -8,7 +8,18 @@
     <link rel="stylesheet" href="style.css">
 </head>
 
-<body class="admin-body">
+<body <div id="loginScreen" class="login-screen">
+    <div class="login-box">
+        <h2>Garson Girişi</h2>
+        <p>Paneli görmek için şifre girin</p>
+
+        <input type="password" id="adminPassword" placeholder="Şifre">
+        <button onclick="adminLogin()">Giriş Yap</button>
+
+        <small id="loginError"></small>
+    </div>
+    </div>
+    class="admin-body">
 
     <header class="admin-header">
         <h1>Garson Paneli</h1>

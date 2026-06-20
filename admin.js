@@ -10,6 +10,31 @@ import {
     deleteDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
+const ADMIN_PASSWORD = "1234";
+
+function adminLogin() {
+    const passwordInput = document.getElementById("adminPassword");
+    const loginScreen = document.getElementById("loginScreen");
+    const loginError = document.getElementById("loginError");
+
+    if (passwordInput.value === ADMIN_PASSWORD) {
+        localStorage.setItem("adminLogin", "true");
+        loginScreen.style.display = "none";
+    } else {
+        loginError.innerText = "Şifre hatalı!";
+    }
+}
+
+window.adminLogin = adminLogin;
+
+window.addEventListener("load", () => {
+    const loginScreen = document.getElementById("loginScreen");
+
+    if (localStorage.getItem("adminLogin") === "true") {
+        loginScreen.style.display = "none";
+    }
+});
+
 const ordersList = document.getElementById("ordersList");
 let firstLoad = true;
 let lastOrderCount = 0;
