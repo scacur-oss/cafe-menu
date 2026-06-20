@@ -11,6 +11,10 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 const ordersList = document.getElementById("ordersList");
+let firstLoad = true;
+let lastOrderCount = 0;
+
+const notificationSound = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
 const ordersQuery = query(
     collection(db, "orders"),
@@ -18,6 +22,16 @@ const ordersQuery = query(
 );
 
 onSnapshot(ordersQuery, (snapshot) => {
+    if (!firstLoad && snapshot.size > lastOrderCount) {
+        notificationSound.play().catch(() => {
+            console.log("Ses çalmak için ekrana bir kez dokunmak gerekebilir.");
+        });
+
+        alert("Yeni sipariş geldi!");
+    }
+
+    lastOrderCount = snapshot.size;
+    firstLoad = false;
     ordersList.innerHTML = "";
 
     if (snapshot.empty) {
@@ -75,6 +89,7 @@ onSnapshot(ordersQuery, (snapshot) => {
         ordersList.appendChild(card);
     });
 });
+
 
 async function updateOrderStatus(orderId, status) {
     const orderRef = doc(db, "orders", orderId);
