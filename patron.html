@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Patron Paneli</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div id="loginBox" class="login-box">
+        <h2>Patron Girişi</h2>
+        <input type="password" id="patronPassword" placeholder="Patron şifresi">
+        <button id="loginBtn">Giriş Yap</button>
+    </div>
+
+    <div id="panel" class="panel hidden">
+        <header>
+            <h1>Patron Paneli</h1>
+            <button id="logoutBtn">Çıkış</button>
+        </header>
+
+        <section class="cards">
+            <div class="card">
+                <h3>Toplam Ciro</h3>
+                <p id="totalRevenue">0 TL</p>
+            </div>
+            <div class="card">
+                <h3>Toplam Sipariş</h3>
+                <p id="totalOrders">0</p>
+            </div>
+            <div class="card">
+                <h3>Ürün Sayısı</h3>
+                <p id="totalProducts">0</p>
+            </div>
+        </section>
+
+        <section class="form-box">
+            <h2>Ürün Ekle</h2>
+
+            <input type="text" id="productName" placeholder="Ürün adı">
+            <input type="number" id="productPrice" placeholder="Fiyat">
+
+            <select id="productCategory">
+                <option value="Kahvaltı">Kahvaltı</option>
+                <option value="Aperatifler">Aperatifler</option>
+                <option value="Ana Yemekler">Ana Yemekler</option>
+                <option value="Tatlılar">Tatlılar</option>
+                <option value="Sıcak İçecekler">Sıcak İçecekler</option>
+                <option value="Soğuk İçecekler">Soğuk İçecekler</option>
+                <option value="Kahveler">Kahveler</option>
+                <option value="Smoothie">Smoothie</option>
+                <option value="Nargile">Nargile</option>
+            </select>
+
+            <textarea id="productDesc" placeholder="Açıklama"></textarea>
+            <input type="file" id="productImage" accept="image/*">
+
+            <button id="addProductBtn">Ürün Ekle</button>
+        </section>
+
+        <section>
+            <h2>Ürünler</h2>
+            <div id="productsList" class="products"></div>
+        </section>
+
+        <section>
+            <h2>Servis İstekleri</h2>
+            <div id="requestsList" class="requests"></div>
+        </section>
+    </div>
+
+    <script type="module" src="patron.js"></script>
+</body>
+
+</html>

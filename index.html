@@ -20,8 +20,29 @@
     </header>
 
     <nav class="category-menu" id="categoryMenu"></nav>
+    <div id="orderStatusBox" class="order-status-box">
+        <h3>Sipariş Durumu</h3>
+        <p id="orderStatusText">Henüz sipariş verilmedi</p>
+    </div>
 
     <main class="products" id="productList"></main>
+
+
+    <div class="service-buttons">
+
+        <button onclick="sendRequest('Garson Çağır')">
+            🛎 Garson Çağır
+        </button>
+
+        <button onclick="sendRequest('Hesap İste')">
+            💳 Hesap İste
+        </button>
+
+        <button onclick="sendRequest('Köz İste')">
+            🔥 Köz İste
+        </button>
+
+    </div>
 
     <button class="cart-button" onclick="openCart()">
         <i class="fa-solid fa-basket-shopping"></i>

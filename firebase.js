@@ -5,8 +5,11 @@ import {
     collection,
     addDoc,
     serverTimestamp
-}
-    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+import {
+    getStorage
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBNfY2I6LHyWcCHLcvg5NvBEkOSrvfqRgM",
@@ -20,14 +23,29 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 
 export const db = getFirestore(app);
+export const storage = getStorage(app);
 
 export async function createOrder(orderData) {
-    return await addDoc(
-        collection(db, "orders"),
-        {
-            ...orderData,
-            createdAt: serverTimestamp(),
-            status: "Yeni Sipariş"
-        }
-    );
+    return await addDoc(collection(db, "orders"), {
+        ...orderData,
+        createdAt: serverTimestamp(),
+        status: "Yeni Sipariş"
+    });
 }
+
+export async function createRequest(requestData) {
+    return await addDoc(collection(db, "requests"), {
+        ...requestData,
+        createdAt: serverTimestamp(),
+        status: "Yeni İstek"
+    });
+}
+
+export async function createProduct(productData) {
+    return await addDoc(collection(db, "products"), {
+        ...productData,
+        createdAt: serverTimestamp(),
+        active: true
+    });
+}
+

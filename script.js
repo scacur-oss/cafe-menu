@@ -1,4 +1,14 @@
-import { createOrder } from "./firebase.js";
+import { createOrder, createRequest, db } from "./firebase.js";
+
+import {
+    doc,
+    onSnapshot,
+    collection,
+    query,
+    orderBy
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+
 
 const categories = [
     { id: "kahvalti", name: "Kahvaltı", icon: "fa-solid fa-egg" },
@@ -12,7 +22,7 @@ const categories = [
     { id: "nargile", name: "Nargile", icon: "fa-solid fa-smoking" }
 ];
 
-const products = [
+let products = [
     {
         id: 1,
         category: "kahvalti",
@@ -130,6 +140,43 @@ function renderCategories() {
     });
 }
 
+function loadProductsFromFirebase() {
+    const productsQuery = query(
+        collection(db, "products"),
+        orderBy("createdAt", "desc")
+    );
+
+    onSnapshot(productsQuery, (snapshot) => {
+        const firebaseProducts = [];
+
+        snapshot.forEach((docSnap) => {
+            const product = docSnap.data();
+
+            if (product.active === false) return;
+
+            if (!product.name || !product.category || !product.price) {
+                return;
+            }
+
+            firebaseProducts.push({
+                id: docSnap.id,
+                category: product.category.toLowerCase(),
+                name: product.name,
+                desc: product.desc || "",
+                price: Number(product.price),
+                image: product.imageUrl || product.image || ""
+            });
+        });
+
+        if (firebaseProducts.length > 0) {
+            products = firebaseProducts;
+        }
+
+        renderCategories();
+        renderProducts();
+    });
+}
+
 function renderProducts() {
     const list = document.getElementById("productList");
     list.innerHTML = "";
@@ -137,29 +184,43 @@ function renderProducts() {
     const filtered = products.filter(item => item.category === selectedCategory);
 
     filtered.forEach(product => {
-        if (!quantities[product.id]) quantities[product.id] = 1;
+
+        if (!quantities[product.id]) {
+            quantities[product.id] = 1;
+        }
 
         const card = document.createElement("div");
         card.className = "product-card";
 
         card.innerHTML = `
-      <img src="${product.image}" alt="${product.name}">
-      <div class="product-info">
-        <h3>${product.name}</h3>
-        <p>${product.desc}</p>
-        <div class="price">${product.price} TL</div>
+            <img src="${product.image}" alt="${product.name}">
 
-        <div class="quantity">
-          <button onclick="decreaseQty(${product.id})">-</button>
-          <span id="qty-${product.id}">${quantities[product.id]}</span>
-          <button onclick="increaseQty(${product.id})">+</button>
-        </div>
+            <div class="product-info">
 
-        <button class="add-btn" onclick="addToCart(${product.id})">
-          Sepete Ekle
-        </button>
-      </div>
-    `;
+                <h3>${product.name}</h3>
+
+                <p>${product.desc}</p>
+
+                <div class="price">
+                    ${product.price} TL
+                </div>
+
+                <div class="quantity">
+                    <button onclick="decreaseQty('${product.id}')">-</button>
+
+                    <span id="qty-${product.id}">
+                        ${quantities[product.id]}
+                    </span>
+
+                    <button onclick="increaseQty('${product.id}')">+</button>
+                </div>
+
+                <button class="add-btn" onclick="addToCart('${product.id}')">
+                    Sepete Ekle
+                </button>
+
+            </div>
+        `;
 
         list.appendChild(card);
     });
@@ -238,12 +299,15 @@ function renderCart() {
       </div>
 
       <div class="cart-actions">
-        <button onclick="decreaseCartItem(${item.id})">-</button>
-        <span>${item.qty}</span>
-        <button onclick="increaseCartItem(${item.id})">+</button>
-        <button class="delete-btn" onclick="removeFromCart(${item.id})">
-          <i class="fa-solid fa-trash"></i>
-        </button>
+        <button onclick="decreaseCartItem('${item.id}')">-</button>
+
+<span>${item.qty}</span>
+
+<button onclick="increaseCartItem('${item.id}')">+</button>
+
+<button class="delete-btn" onclick="removeFromCart('${item.id}')">
+    <i class="fa-solid fa-trash"></i>
+</button>
       </div>
     `;
 
@@ -260,7 +324,6 @@ function renderCart() {
 */
 
 async function sendOrder() {
-
     if (masaNo === "-") {
         alert("Masa numarası bulunamadı.");
         return;
@@ -271,38 +334,33 @@ async function sendOrder() {
         return;
     }
 
-    let total = cart.reduce(
-        (sum, item) => sum + item.price * item.qty,
-        0
-    );
+    let total = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
 
     try {
-
-        await createOrder({
+        const orderRef = await createOrder({
             masa: masaNo,
             total: total,
-            items: cart
+            items: [...cart]
         });
 
-        alert("Siparişiniz garsona iletildi.");
+        trackOrderStatus(orderRef.id);
 
-        cart = [];
-
-        updateCartCount();
+        alert("Siparişiniz garsona iletildi. Durumu ekrandan takip edebilirsiniz.");
 
         closeCart();
 
+        cart = [];
+        updateCartCount();
+        renderCart();
+
     } catch (err) {
-
         console.error(err);
-
         alert("Sipariş gönderilemedi.");
-
     }
 }
 
 renderCategories();
-renderProducts();
+loadProductsFromFirebase();
 
 const slider = document.getElementById("categoryMenu");
 
@@ -394,3 +452,62 @@ window.decreaseQty = decreaseQty;
 window.increaseCartItem = increaseCartItem;
 window.decreaseCartItem = decreaseCartItem;
 window.removeFromCart = removeFromCart;
+
+async function sendRequest(type) {
+
+    try {
+
+        await createRequest({
+            masa: masaNo,
+            type: type
+        });
+
+        alert(type + " talebiniz garsona iletildi.");
+
+    } catch (err) {
+
+        console.error(err);
+
+        alert("Talep gönderilemedi.");
+
+    }
+}
+
+window.sendRequest = sendRequest;
+
+function trackOrderStatus(orderId) {
+    const statusBox = document.getElementById("orderStatusBox");
+    const statusText = document.getElementById("orderStatusText");
+
+    if (!statusBox || !statusText) {
+        console.log("Durum kutusu HTML'de bulunamadı.");
+        return;
+    }
+
+    statusBox.style.display = "block";
+    statusBox.className = "order-status-box status-new";
+    statusText.innerText = "🟠 Yeni Sipariş";
+
+    const orderRef = doc(db, "orders", orderId);
+
+    onSnapshot(orderRef, (docSnap) => {
+        if (docSnap.exists()) {
+            const order = docSnap.data();
+
+            if (order.status === "Yeni Sipariş") {
+                statusBox.className = "order-status-box status-new";
+                statusText.innerText = "🟠 Yeni Sipariş";
+            }
+
+            if (order.status === "Hazırlanıyor") {
+                statusBox.className = "order-status-box status-preparing";
+                statusText.innerText = "🟡 Siparişiniz hazırlanıyor";
+            }
+
+            if (order.status === "Teslim Edildi") {
+                statusBox.className = "order-status-box status-done";
+                statusText.innerText = "🟢 Siparişiniz teslim edildi";
+            }
+        }
+    });
+}

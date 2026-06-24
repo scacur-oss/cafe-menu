@@ -17,33 +17,41 @@ const loginBtn = document.getElementById("loginBtn");
 const passwordInput = document.getElementById("adminPassword");
 const loginError = document.getElementById("loginError");
 const ordersList = document.getElementById("ordersList");
+const requestsList = document.getElementById("requestsList");
 
-loginBtn.addEventListener("click", () => {
+if (loginBtn) {
+    loginBtn.addEventListener("click", () => {
+        if (passwordInput.value.trim() === ADMIN_PASSWORD) {
+            localStorage.setItem("adminLogin", "true");
 
+            if (loginScreen) {
+                loginScreen.style.display = "none";
+                loginScreen.remove();
+            }
+        } else {
+            loginError.innerText = "Şifre hatalı!";
+        }
+    });
+}
 
-    if (passwordInput.value.trim() === ADMIN_PASSWORD) {
-        localStorage.setItem("adminLogin", "true");
-
-        loginScreen.style.display = "none";
-        loginScreen.remove();
-
-    } else {
-        loginError.innerText = "Şifre hatalı!";
-    }
-});
-
-passwordInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-        loginBtn.click();
-    }
-});
+if (passwordInput) {
+    passwordInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            loginBtn.click();
+        }
+    });
+}
 
 if (localStorage.getItem("adminLogin") === "true") {
-    loginScreen.style.display = "none";
+    if (loginScreen) {
+        loginScreen.style.display = "none";
+        loginScreen.remove();
+    }
 }
 
 let firstLoad = true;
 let lastOrderCount = 0;
+
 const notificationSound = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
 const ordersQuery = query(
@@ -52,6 +60,8 @@ const ordersQuery = query(
 );
 
 onSnapshot(ordersQuery, (snapshot) => {
+    ordersList.innerHTML = "";
+
     if (!firstLoad && snapshot.size > lastOrderCount) {
         notificationSound.play().catch(() => {
             console.log("Ses için ekrana bir kez dokunmak gerekebilir.");
@@ -63,8 +73,6 @@ onSnapshot(ordersQuery, (snapshot) => {
     lastOrderCount = snapshot.size;
     firstLoad = false;
 
-    ordersList.innerHTML = "";
-
     if (snapshot.empty) {
         ordersList.innerHTML = `<p class="empty-order">Henüz sipariş yok.</p>`;
         return;
@@ -73,54 +81,61 @@ onSnapshot(ordersQuery, (snapshot) => {
     snapshot.forEach((docSnap) => {
         const order = docSnap.data();
         const orderId = docSnap.id;
+        if (order.status === "Teslim Edildi") {
+            return;
+        }
 
         let itemsHtml = "";
 
-        order.items.forEach(item => {
-            itemsHtml += `
-        <li>
-          ${item.qty} adet ${item.name}
-          <span>${item.price * item.qty} TL</span>
-        </li>
-      `;
-        });
+        if (order.items && Array.isArray(order.items)) {
+            order.items.forEach(item => {
+                itemsHtml += `
+                    <li>
+                        ${item.qty} adet ${item.name}
+                        <span>${item.price * item.qty} TL</span>
+                    </li>
+                `;
+            });
+        }
 
         const card = document.createElement("div");
         card.className = "order-card";
 
         card.innerHTML = `
-      <div class="order-top">
-        <h2>Masa ${order.masa}</h2>
-        <span class="status">${order.status}</span>
-      </div>
+            <div class="order-top">
+                <h2>Masa ${order.masa}</h2>
+                <span class="status">${order.status || "Yeni Sipariş"}</span>
+            </div>
 
-      <ul class="order-items">
-        ${itemsHtml}
-      </ul>
+            <ul class="order-items">
+                ${itemsHtml}
+            </ul>
 
-      <div class="order-total">
-        Toplam: ${order.total} TL
-      </div>
+            <div class="order-total">
+                Toplam: ${order.total || 0} TL
+            </div>
 
-      <div class="order-buttons">
-        <button class="prepare-btn" data-id="${orderId}" data-status="Hazırlanıyor">
-          Hazırlanıyor
-        </button>
+            <div class="order-buttons">
+                <button class="prepare-btn" data-id="${orderId}" data-status="Hazırlanıyor">
+                    Hazırlanıyor
+                </button>
 
-        <button class="done-btn" data-id="${orderId}" data-status="Teslim Edildi">
-          Teslim Edildi
-        </button>
+                <button class="waiting-btn" data-id="${orderId}" data-status="Beklemede">
+                    Beklemede
+                </button>
 
-        <button class="delete-order-btn" data-id="${orderId}">
-          Sil
-        </button>
-      </div>
-    `;
+                <button class="done-btn" data-id="${orderId}" data-status="Teslim Edildi">
+                    Teslim Edildi
+                </button>
+
+                
+            </div>
+        `;
 
         ordersList.appendChild(card);
     });
 
-    document.querySelectorAll(".prepare-btn, .done-btn").forEach(button => {
+    document.querySelectorAll(".prepare-btn, .waiting-btn, .done-btn").forEach(button => {
         button.addEventListener("click", async () => {
             await updateOrderStatus(button.dataset.id, button.dataset.status);
         });
@@ -135,6 +150,7 @@ onSnapshot(ordersQuery, (snapshot) => {
 
 async function updateOrderStatus(orderId, status) {
     const orderRef = doc(db, "orders", orderId);
+
     await updateDoc(orderRef, {
         status: status
     });
@@ -146,4 +162,54 @@ async function deleteOrder(orderId) {
 
     const orderRef = doc(db, "orders", orderId);
     await deleteDoc(orderRef);
+}
+
+const requestsQuery = query(
+    collection(db, "requests"),
+    orderBy("createdAt", "desc")
+);
+
+onSnapshot(requestsQuery, (snapshot) => {
+    requestsList.innerHTML = "";
+
+    if (snapshot.empty) {
+        requestsList.innerHTML = `<p class="empty-order">Henüz istek yok.</p>`;
+        return;
+    }
+
+    snapshot.forEach((docSnap) => {
+        const request = docSnap.data();
+        const requestId = docSnap.id;
+
+        const card = document.createElement("div");
+        card.className = "request-card";
+
+        card.innerHTML = `
+            <div>
+                <h3>Masa ${request.masa}</h3>
+                <p>${request.type}</p>
+                <small>${request.status || "Yeni İstek"}</small>
+            </div>
+
+            <button class="delete-request-btn" data-id="${requestId}">
+                Tamamlandı
+            </button>
+        `;
+
+        requestsList.appendChild(card);
+    });
+
+    document.querySelectorAll(".delete-request-btn").forEach(button => {
+        button.addEventListener("click", async () => {
+            await deleteRequest(button.dataset.id);
+        });
+    });
+});
+
+async function deleteRequest(requestId) {
+    const confirmDelete = confirm("Bu isteği tamamlandı olarak silmek istiyor musunuz?");
+    if (!confirmDelete) return;
+
+    const requestRef = doc(db, "requests", requestId);
+    await deleteDoc(requestRef);
 }
