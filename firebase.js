@@ -15,7 +15,7 @@ const firebaseConfig = {
     apiKey: "AIzaSyBNfY2I6LHyWcCHLcvg5NvBEkOSrvfqRgM",
     authDomain: "cafe-menu-e3491.firebaseapp.com",
     projectId: "cafe-menu-e3491",
-    storageBucket: "cafe-menu-e3491.firebasestorage.app",
+    storageBucket: "cafe-menu-e3491.appspot.com",
     messagingSenderId: "216661905972",
     appId: "1:216661905972:web:ca371393b3285a1d75f061"
 };
@@ -48,4 +48,3 @@ export async function createProduct(productData) {
         active: true
     });
 }
-

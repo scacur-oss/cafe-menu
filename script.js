@@ -154,17 +154,17 @@ function loadProductsFromFirebase() {
 
             if (product.active === false) return;
 
-            if (!product.name || !product.category || !product.price) {
+            if (!product.name || !product.category || !product.price || !product.image) {
                 return;
             }
 
             firebaseProducts.push({
                 id: docSnap.id,
-                category: product.category.toLowerCase(),
+                category: product.category,
                 name: product.name,
                 desc: product.desc || "",
                 price: Number(product.price),
-                image: product.imageUrl || product.image || ""
+                image: product.image
             });
         });
 
@@ -239,16 +239,23 @@ function decreaseQty(id) {
 }
 
 function addToCart(id) {
-    const product = products.find(item => item.id === id);
-    const qty = quantities[id];
+    const product = products.find(item => String(item.id) === String(id));
 
-    const existing = cart.find(item => item.id === id);
+    if (!product) {
+        console.error("Ürün bulunamadı:", id);
+        alert("Ürün sepete eklenemedi.");
+        return;
+    }
+
+    const qty = quantities[id] || 1;
+
+    const existing = cart.find(item => String(item.id) === String(id));
 
     if (existing) {
         existing.qty += qty;
     } else {
         cart.push({
-            id: product.id,
+            id: String(product.id),
             name: product.name,
             price: product.price,
             qty: qty
@@ -299,7 +306,7 @@ function renderCart() {
       </div>
 
       <div class="cart-actions">
-        <button onclick="decreaseCartItem('${item.id}')">-</button>
+       <button onclick="decreaseCartItem('${item.id}')">-</button>
 
 <span>${item.qty}</span>
 

@@ -1,14 +1,12 @@
-import { db, storage } from "./firebase.js";
+import { db, createProduct, storage } from "./firebase.js";
 
 import {
     collection,
-    addDoc,
-    deleteDoc,
-    doc,
-    onSnapshot,
     query,
     orderBy,
-    serverTimestamp
+    onSnapshot,
+    doc,
+    updateDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 import {
@@ -17,221 +15,246 @@ import {
     getDownloadURL
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-const PATRON_PASSWORD = "1234";
+const PATRON_PASSWORD = "9999";
 
-const loginBox = document.getElementById("loginBox");
-const panel = document.getElementById("panel");
-const loginBtn = document.getElementById("loginBtn");
-const logoutBtn = document.getElementById("logoutBtn");
+const patronLoginScreen = document.getElementById("patronLoginScreen");
+const patronLoginBtn = document.getElementById("patronLoginBtn");
+const patronPassword = document.getElementById("patronPassword");
+const patronLoginError = document.getElementById("patronLoginError");
 
-const totalRevenue = document.getElementById("totalRevenue");
-const totalOrders = document.getElementById("totalOrders");
-const totalProducts = document.getElementById("totalProducts");
+const todayRevenueEl = document.getElementById("todayRevenue");
+const totalOrdersEl = document.getElementById("totalOrders");
+const activeOrdersEl = document.getElementById("activeOrders");
+const completedOrdersEl = document.getElementById("completedOrders");
 
+const productName = document.getElementById("productName");
+const productCategory = document.getElementById("productCategory");
+const productDesc = document.getElementById("productDesc");
+const productPrice = document.getElementById("productPrice");
+const productImageFile = document.getElementById("productImageFile");
 const addProductBtn = document.getElementById("addProductBtn");
-const productsList = document.getElementById("productsList");
-const requestsList = document.getElementById("requestsList");
 
-loginBtn.addEventListener("click", () => {
-    const password = document.getElementById("patronPassword").value;
-
-    if (password === PATRON_PASSWORD) {
+/* Patron giriş */
+patronLoginBtn.addEventListener("click", () => {
+    if (patronPassword.value.trim() === PATRON_PASSWORD) {
         localStorage.setItem("patronLogin", "true");
-        showPanel();
+        patronLoginScreen.style.display = "none";
+        patronLoginScreen.remove();
     } else {
-        alert("Şifre yanlış");
+        patronLoginError.innerText = "Şifre hatalı!";
     }
 });
 
-logoutBtn.addEventListener("click", () => {
-    localStorage.removeItem("patronLogin");
-    location.reload();
+patronPassword.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+        patronLoginBtn.click();
+    }
 });
 
 if (localStorage.getItem("patronLogin") === "true") {
-    showPanel();
+    patronLoginScreen.style.display = "none";
 }
 
-function showPanel() {
-    loginBox.classList.add("hidden");
-    panel.classList.remove("hidden");
-    listenProducts();
-    listenOrders();
-    listenRequests();
-}
+/* Ciro ve sipariş istatistikleri */
+const ordersQuery = query(
+    collection(db, "orders"),
+    orderBy("createdAt", "desc")
+);
 
+onSnapshot(ordersQuery, (snapshot) => {
+    let todayRevenue = 0;
+    let totalOrders = 0;
+    let activeOrders = 0;
+    let completedOrders = 0;
+
+    const today = new Date();
+    const todayDate = today.toDateString();
+
+    snapshot.forEach((docSnap) => {
+        const order = docSnap.data();
+
+        totalOrders++;
+
+        if (order.status === "Teslim Edildi") {
+            completedOrders++;
+        } else {
+            activeOrders++;
+        }
+
+        if (order.createdAt && order.createdAt.toDate) {
+            const orderDate = order.createdAt.toDate();
+
+            if (orderDate.toDateString() === todayDate) {
+                todayRevenue += Number(order.total || 0);
+            }
+        }
+    });
+
+    todayRevenueEl.innerText = `${todayRevenue} TL`;
+    totalOrdersEl.innerText = totalOrders;
+    activeOrdersEl.innerText = activeOrders;
+    completedOrdersEl.innerText = completedOrders;
+});
+
+/* Ürün ekleme ve resim yükleme */
 addProductBtn.addEventListener("click", async () => {
-    const name = document.getElementById("productName").value.trim();
-    const price = Number(document.getElementById("productPrice").value);
-    const category = document.getElementById("productCategory").value;
-    const desc = document.getElementById("productDesc").value.trim();
-    const imageFile = document.getElementById("productImage").files[0];
-
-    if (!name || !price || !category) {
-        alert("Ürün adı, fiyat ve kategori zorunlu");
+    if (
+        productName.value.trim() === "" ||
+        productDesc.value.trim() === "" ||
+        productPrice.value.trim() === "" ||
+        productImageFile.files.length === 0
+    ) {
+        alert("Lütfen tüm ürün bilgilerini ve ürün resmini seçin.");
         return;
     }
 
-    addProductBtn.disabled = true;
-    addProductBtn.innerText = "Yükleniyor...";
-
     try {
-        let imageUrl = "";
+        addProductBtn.disabled = true;
+        addProductBtn.innerText = "Yükleniyor...";
 
-        if (imageFile) {
-            const resizedImage = await resizeImage(imageFile, 800, 800);
-            const imageRef = ref(storage, `products/${Date.now()}-${imageFile.name}`);
-            await uploadBytes(imageRef, resizedImage);
-            imageUrl = await getDownloadURL(imageRef);
-        }
+        const file = productImageFile.files[0];
 
-        await addDoc(collection(db, "products"), {
-            name,
-            price,
-            category,
-            desc,
-            imageUrl,
-            active: true,
-            createdAt: serverTimestamp()
+        const imageRef = ref(
+            storage,
+            `product-images/${Date.now()}-${file.name}`
+        );
+
+        await uploadBytes(imageRef, file);
+
+        const imageUrl = await getDownloadURL(imageRef);
+
+        await createProduct({
+            name: productName.value.trim(),
+            category: productCategory.value,
+            desc: productDesc.value.trim(),
+            price: Number(productPrice.value),
+            image: imageUrl
         });
 
-        document.getElementById("productName").value = "";
-        document.getElementById("productPrice").value = "";
-        document.getElementById("productDesc").value = "";
-        document.getElementById("productImage").value = "";
+        alert("Ürün ve resmi başarıyla eklendi.");
 
-        alert("Ürün eklendi");
-    } catch (error) {
-        console.error(error);
-        alert("Ürün eklenirken hata oluştu");
+        productName.value = "";
+        productDesc.value = "";
+        productPrice.value = "";
+        productImageFile.value = "";
+
+    } catch (err) {
+        console.error(err);
+        alert("Ürün eklenirken hata oluştu.");
+    } finally {
+        addProductBtn.disabled = false;
+        addProductBtn.innerText = "Ürün Ekle";
     }
-
-    addProductBtn.disabled = false;
-    addProductBtn.innerText = "Ürün Ekle";
 });
 
-function listenProducts() {
-    const q = query(collection(db, "products"), orderBy("createdAt", "desc"));
+const productsManageList = document.getElementById("productsManageList");
 
-    onSnapshot(q, (snapshot) => {
-        productsList.innerHTML = "";
-        totalProducts.innerText = snapshot.size;
+const productsQuery = collection(db, "products");
 
-        snapshot.forEach((item) => {
-            const product = item.data();
+onSnapshot(productsQuery, (snapshot) => {
+    productsManageList.innerHTML = "";
 
-            productsList.innerHTML += `
-        <div class="product-card">
-          ${product.imageUrl ? `<img src="${product.imageUrl}">` : ""}
-          <h3>${product.name}</h3>
-          <p>${product.category}</p>
-          <p>${product.desc || ""}</p>
-          <strong>${product.price} TL</strong>
-          <button class="delete-btn" onclick="deleteProduct('${item.id}')">Sil</button>
-        </div>
-      `;
-        });
-    });
-}
+    if (snapshot.empty) {
+        productsManageList.innerHTML = "<p>Henüz ürün yok.</p>";
+        return;
+    }
 
-window.deleteProduct = async function (id) {
-    if (!confirm("Bu ürünü silmek istiyor musun?")) return;
+    snapshot.forEach((docSnap) => {
+        const product = docSnap.data();
+        const productId = docSnap.id;
 
-    await deleteDoc(doc(db, "products", id));
-};
+        const card = document.createElement("div");
+        card.className = "product-manage-card";
 
-function listenOrders() {
-    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+        card.innerHTML = `
+            <img src="${product.image}" style="width:90px;height:90px;object-fit:cover;border-radius:10px;">
 
-    onSnapshot(q, (snapshot) => {
-        let todayRevenue = 0;
-        let todayOrders = 0;
+            <input type="text" class="edit-name" value="${product.name || ""}">
+            <input type="text" class="edit-desc" value="${product.desc || ""}">
+            <input type="number" class="edit-price" value="${product.price || 0}">
 
-        const now = new Date();
+            <select class="edit-category">
+                <option value="kahvalti">Kahvaltı</option>
+                <option value="aperatif">Aperatifler</option>
+                <option value="anayemek">Ana Yemekler</option>
+                <option value="tatli">Tatlılar</option>
+                <option value="sicak">Sıcak İçecekler</option>
+                <option value="soguk">Soğuk İçecekler</option>
+                <option value="kahve">Kahveler</option>
+                <option value="smoothie">Smoothie</option>
+                <option value="nargile">Nargile</option>
+            </select>
 
-        snapshot.forEach((item) => {
-            const order = item.data();
+            <input type="file" class="edit-image" accept="image/*">
 
-            if (!order.createdAt || !order.total) return;
+            <button class="save-product-btn">Kaydet</button>
+            <button class="toggle-product-btn">
+                ${product.active === false ? "Aktif Yap" : "Pasife Al"}
+            </button>
+        `;
 
-            const orderDate = order.createdAt.toDate();
+        productsManageList.appendChild(card);
 
-            const sameDay =
-                orderDate.getDate() === now.getDate() &&
-                orderDate.getMonth() === now.getMonth() &&
-                orderDate.getFullYear() === now.getFullYear();
+        const categorySelect = card.querySelector(".edit-category");
+        categorySelect.value = product.category || "kahvalti";
 
-            if (sameDay) {
-                todayRevenue += Number(order.total);
-                todayOrders++;
+        card.querySelector(".save-product-btn").addEventListener("click", async () => {
+            const name = card.querySelector(".edit-name").value.trim();
+            const desc = card.querySelector(".edit-desc").value.trim();
+            const price = Number(card.querySelector(".edit-price").value);
+            const category = card.querySelector(".edit-category").value;
+            const imageFile = card.querySelector(".edit-image").files[0];
+
+            if (!name || !desc || !price || !category) {
+                alert("Lütfen ürün bilgilerini boş bırakmayın.");
+                return;
+            }
+
+            try {
+                const productRef = doc(db, "products", productId);
+
+                const updateData = {
+                    name: name,
+                    desc: desc,
+                    price: price,
+                    category: category
+                };
+
+                if (imageFile) {
+                    const imageRef = ref(
+                        storage,
+                        `product-images/${Date.now()}-${imageFile.name}`
+                    );
+
+                    await uploadBytes(imageRef, imageFile);
+                    const imageUrl = await getDownloadURL(imageRef);
+
+                    updateData.image = imageUrl;
+                }
+
+                await updateDoc(productRef, updateData);
+
+                alert("Ürün güncellendi.");
+            } catch (err) {
+                console.error(err);
+                alert("Ürün güncellenemedi.");
             }
         });
 
-        totalRevenue.innerText = `${todayRevenue.toLocaleString("tr-TR")} TL`;
-        totalOrders.innerText = todayOrders;
-    });
-}
+        card.querySelector(".toggle-product-btn").addEventListener("click", async () => {
+            try {
+                const productRef = doc(db, "products", productId);
 
-function listenRequests() {
-    const q = query(collection(db, "requests"), orderBy("createdAt", "desc"));
+                await updateDoc(productRef, {
+                    active: product.active === false ? true : false
+                });
 
-    onSnapshot(q, (snapshot) => {
-        requestsList.innerHTML = "";
-
-        snapshot.forEach((item) => {
-            const req = item.data();
-
-            requestsList.innerHTML += `
-        <div class="request-card">
-          <h3>Masa ${req.table || "-"}</h3>
-          <p>${req.type || "Servis isteği"}</p>
-        </div>
-      `;
+                alert(product.active === false ? "Ürün aktif yapıldı." : "Ürün pasife alındı.");
+            } catch (err) {
+                console.error(err);
+                alert("Ürün durumu değiştirilemedi.");
+            }
         });
     });
-}
+});
 
-function resizeImage(file, maxWidth, maxHeight) {
-    return new Promise((resolve) => {
-        const img = new Image();
-        const reader = new FileReader();
-
-        reader.onload = (e) => {
-            img.src = e.target.result;
-        };
-
-        img.onload = () => {
-            let width = img.width;
-            let height = img.height;
-
-            if (width > height) {
-                if (width > maxWidth) {
-                    height = height * (maxWidth / width);
-                    width = maxWidth;
-                }
-            } else {
-                if (height > maxHeight) {
-                    width = width * (maxHeight / height);
-                    height = maxHeight;
-                }
-            }
-
-            const canvas = document.createElement("canvas");
-            canvas.width = width;
-            canvas.height = height;
-
-            const ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0, width, height);
-
-            canvas.toBlob(
-                (blob) => {
-                    resolve(blob);
-                },
-                "image/jpeg",
-                0.75
-            );
-        };
-
-        reader.readAsDataURL(file);
-    });
-}
